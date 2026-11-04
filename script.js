@@ -18,13 +18,15 @@
   }
 
   async function loadWorkbook() {
+    if (typeof XLSX === "undefined") throw new Error("لم يتم تحميل قارئ ملف الطلبة");
     const response = await fetch("data/document-ab995a.xlsx");
     if (!response.ok) throw new Error("تعذر تحميل ملف الطالبات");
     const workbook = XLSX.read(await response.arrayBuffer(), { type: "array" });
     state.workbook = workbook;
     workbook.SheetNames.filter((name) => name !== "Sheet1").forEach((name) => {
-      const year = name.startsWith("اولى") ? "الأولى" : "الثانية";
-      const className = name.replace(/^اولى|^تانية/, "");
+      const normalized = name.replace(/[أإآ]/g, "ا").replace(/ة/g, "ه");
+      const year = normalized.startsWith("اولى") || normalized.startsWith("1") ? "الأولى" : "الثانية";
+      const className = name.replace(/^(أولى|اولى|أولي|اولى|ثانية|تانية|2)/, "").trim() || name;
       state.sheets[name] = { year, className: `فصل ${className}`, students: parseSheet(workbook.Sheets[name], name) };
     });
     fillYears();
@@ -65,7 +67,7 @@
     return `<tr><td class="number">${esc(student.number)}</td><td class="student-name">${esc(student.name)}</td><td>${esc(student.religion || "—")}</td><td>${esc(student.language || "—")}</td><td><div class="attendance"><label class="present"><input type="radio" name="attendance-${esc(student.id)}" data-id="${esc(student.id)}" value="present" ${status === "present" ? "checked" : ""}><span>حاضر</span></label><label class="absent"><input type="radio" name="attendance-${esc(student.id)}" data-id="${esc(student.id)}" value="absent" ${status === "absent" ? "checked" : ""}><span>غائب</span></label></div></td></tr>`;
   }
 
-  $("loginForm").addEventListener("submit", async (event) => { event.preventDefault(); if ($("password").value !== "admin") { $("loginError").textContent = "كلمة المرور غير صحيحة"; return; } $("loginError").textContent = ""; $("loginScreen").hidden = true; $("dashboard").hidden = false; $("todayLabel").textContent = new Intl.DateTimeFormat("ar-EG", { dateStyle: "full" }).format(new Date()); try { await loadWorkbook(); } catch (error) { $("roster").hidden = false; $("roster").innerHTML = `<p class="error">${esc(error.message)}. تأكدي أن ملف البيانات موجود داخل مجلد data.</p>`; } });
+  $("loginForm").addEventListener("submit", async (event) => { event.preventDefault(); if (String($("password").value).trim() !== "admin") { $("loginError").textContent = "كلمة المرور غير صحيحة"; return; } $("loginError").textContent = ""; $("loginScreen").hidden = true; $("dashboard").hidden = false; $("todayLabel").textContent = new Intl.DateTimeFormat("ar-EG", { dateStyle: "full" }).format(new Date()); try { await loadWorkbook(); } catch (error) { $("roster").hidden = false; $("roster").innerHTML = `<p class="error">${esc(error.message)}. تأكدي أن ملف البيانات موجود داخل مجلد data.</p>`; } });
   $("yearSelect").addEventListener("change", fillClasses);
   $("classSelect").addEventListener("change", () => { $("showClass").disabled = !$("classSelect").value; });
   $("showClass").addEventListener("click", renderClass);
