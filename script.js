@@ -26,8 +26,8 @@
     workbook.SheetNames.filter((name) => name !== "Sheet1").forEach((name) => {
       const normalized = name.replace(/[أإآ]/g, "ا").replace(/ة/g, "ه");
       const year = normalized.startsWith("اولى") || normalized.startsWith("1") ? "الأولى" : "الثانية";
-      const className = name.replace(/^(أولى|اولى|أولي|اولى|ثانية|تانية|2)/, "").trim() || name;
-      state.sheets[name] = { year, className: `فصل ${className}`, students: parseSheet(workbook.Sheets[name], name) };
+      const className = name.trim();
+      state.sheets[name] = { year, className, students: parseSheet(workbook.Sheets[name], name) };
     });
     fillYears();
   }
@@ -64,7 +64,7 @@
 
   function rowTemplate(student) {
     const status = state.attendance[student.id] || "";
-    return `<tr><td class="number">${esc(student.number)}</td><td class="student-name">${esc(student.name)}</td><td>${esc(student.religion || "—")}</td><td>${esc(student.language || "—")}</td><td><div class="attendance"><label class="present"><input type="radio" name="attendance-${esc(student.id)}" data-id="${esc(student.id)}" value="present" ${status === "present" ? "checked" : ""}><span>حاضر</span></label><label class="absent"><input type="radio" name="attendance-${esc(student.id)}" data-id="${esc(student.id)}" value="absent" ${status === "absent" ? "checked" : ""}><span>غائب</span></label></div></td></tr>`;
+    return `<tr><td class="number">${esc(student.number)}</td><td class="student-name">${esc(student.name)}</td><td>${esc(student.religion || "—")}</td><td>${esc(student.language || "—")}</td><td><div class="attendance"><label class="present" title="تسجيل حضور"><input type="radio" name="attendance-${esc(student.id)}" data-id="${esc(student.id)}" value="present" ${status === "present" ? "checked" : ""}><span aria-hidden="true">✓</span><b class="sr-only">حاضر</b></label><label class="absent" title="تسجيل غياب"><input type="radio" name="attendance-${esc(student.id)}" data-id="${esc(student.id)}" value="absent" ${status === "absent" ? "checked" : ""}><span aria-hidden="true">✗</span><b class="sr-only">غائب</b></label></div></td></tr>`;
   }
 
   $("loginForm").addEventListener("submit", async (event) => { event.preventDefault(); if (String($("password").value).trim() !== "admin") { $("loginError").textContent = "كلمة المرور غير صحيحة"; return; } $("loginError").textContent = ""; $("loginScreen").hidden = true; $("dashboard").hidden = false; $("todayLabel").textContent = new Intl.DateTimeFormat("ar-EG", { dateStyle: "full" }).format(new Date()); try { await loadWorkbook(); } catch (error) { $("roster").hidden = false; $("roster").innerHTML = `<p class="error">${esc(error.message)}. تأكدي أن ملف البيانات موجود داخل مجلد data.</p>`; } });
